@@ -22,5 +22,7 @@ func handleConnection(conn net.Conn) {
 
 	log.Printf("message: %s\n", string(buffer))
 
+	buffer = nil
+
 	// conn.Close()
 }
