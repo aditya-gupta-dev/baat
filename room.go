@@ -2,27 +2,28 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
 )
 
 type Room struct {
+	logger   *Logger
 	users    []net.Conn
 	listener net.Listener
 	conn_chn chan net.Conn // connection channel
 }
 
-func CreateRoom(config *Config) Room {
+func NewRoom(config *Config, logger *Logger) Room {
 	listener, err := net.Listen("tcp", ":"+config.port)
 	if err != nil {
-		log.Fatalf("failed to open tcp server: %s\n", err)
+		logger.sendErrorf("failed to open tcp server: %s\n", err)
 	}
 
-	log.Printf("started listening on port %s\n", config.port)
+	logger.sendMessageF("started listening on port %s\n", config.port)
 
 	return Room{
-		users:    []net.Conn{},
+		logger:   logger,
 		listener: listener,
+		users:    []net.Conn{},
 		conn_chn: make(chan net.Conn),
 	}
 }
@@ -32,8 +33,8 @@ func connectionHandler(room Room) {
 
 		room.users = append(room.users, conn)
 
-		log.Printf("user-channel-update: new user recieved { %s }\n", conn.RemoteAddr().String())
-		log.Printf("user-channel-update: total connections { %d }\n", len(room.users))
+		room.logger.sendMessageF("user-channel-update: new user recieved { %s }\n", conn.RemoteAddr().String())
+		room.logger.sendMessageF("user-channel-update: total connections { %d }\n", len(room.users))
 
 		if len(room.users) == 1 {
 			continue
@@ -46,15 +47,15 @@ func connectionHandler(room Room) {
 			}
 			n, err := user.Write([]byte(fmt.Sprintf("user-joined: %s\n", user.RemoteAddr().String())))
 			if err != nil {
-				log.Fatalf("failed to write %d %s\n", n, err)
+				room.logger.sendFatalF("failed to write %d %s\n", n, err)
 			}
-			log.Printf("user-send-message: message send to %s\n", user.RemoteAddr().String())
+			room.logger.sendMessageF("user-send-message: message send to %s\n", user.RemoteAddr().String())
 			counter += 1
 		}
 
-		log.Printf("user-send-message: total message recievers %d\n", counter)
+		room.logger.sendMessageF("user-send-message: total message recievers %d\n", counter)
 	}
-	log.Printf("user-channel-update: closed\n")
+	room.logger.sendMessageF("user-channel-update: closed\n")
 }
 
 func (room *Room) StartListening() {
@@ -64,11 +65,11 @@ func (room *Room) StartListening() {
 	for {
 		new_conn, err := room.listener.Accept()
 		if err != nil {
-			log.Fatalf("failed to connect to %s\n", err)
+			room.logger.sendFatalF("failed to connect to %s\n", err)
 		}
 		room.conn_chn <- new_conn
 
-		log.Printf("user-joined: %s\n", new_conn.RemoteAddr().String())
+		room.logger.sendMessageF("user-joined: %s\n", new_conn.RemoteAddr().String())
 	}
 }
 

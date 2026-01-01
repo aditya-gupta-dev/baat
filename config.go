@@ -4,6 +4,8 @@ type Config struct {
 	port             string
 	connection_limit int
 	max_message_size int
+	debug_mode       bool
+	log_bufsize      int
 }
 
 func DefaultConfig() Config {
@@ -11,6 +13,8 @@ func DefaultConfig() Config {
 		port:             "8080",
 		connection_limit: 12,
 		max_message_size: 1024,
+		debug_mode:       false,
+		log_bufsize:      12,
 	}
 }
 
