@@ -1,3 +1,4 @@
 main 
 baat
 .env
+*.log

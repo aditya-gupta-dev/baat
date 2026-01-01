@@ -7,8 +7,9 @@ import (
 )
 
 type Room struct {
-	clients  []net.Conn
+	users    []net.Conn
 	listener net.Listener
+	conn_chn chan net.Conn // connection channel
 }
 
 func CreateRoom(config *Config) Room {
@@ -20,51 +21,52 @@ func CreateRoom(config *Config) Room {
 	log.Printf("started listening on port %s\n", config.port)
 
 	return Room{
-		clients:  []net.Conn{},
+		users:    []net.Conn{},
 		listener: listener,
+		conn_chn: make(chan net.Conn),
 	}
 }
 
-var connections []net.Conn = []net.Conn{}
+func connectionHandler(room Room) {
+	for conn := range room.conn_chn {
 
-func connectionHandler(conn_chn chan net.Conn) {
-	for conn := range conn_chn {
+		room.users = append(room.users, conn)
 
 		log.Printf("user-channel-update: new user recieved { %s }\n", conn.RemoteAddr().String())
-		log.Printf("user-channel-update: total connections { %d }\n", len(connections))
+		log.Printf("user-channel-update: total connections { %d }\n", len(room.users))
 
-		if len(connections) == 1 {
+		if len(room.users) == 1 {
 			continue
 		}
 
 		var counter int = 0
-		for _, connection := range connections {
-			if connection.RemoteAddr().String() == conn.LocalAddr().String() {
+		for _, user := range room.users {
+			if user.RemoteAddr().String() == conn.LocalAddr().String() {
 				continue
 			}
-			n, err := connection.Write([]byte(fmt.Sprintf("user-joined: %s\n", connection.RemoteAddr().String())))
+			n, err := user.Write([]byte(fmt.Sprintf("user-joined: %s\n", user.RemoteAddr().String())))
 			if err != nil {
 				log.Fatalf("failed to write %d %s\n", n, err)
 			}
-			log.Printf("user-send-message: message send to %s\n", connection.RemoteAddr().String())
+			log.Printf("user-send-message: message send to %s\n", user.RemoteAddr().String())
 			counter += 1
 		}
 
 		log.Printf("user-send-message: total message recievers %d\n", counter)
 	}
+	log.Printf("user-channel-update: closed\n")
 }
 
 func (room *Room) StartListening() {
-	conn_chn := make(chan net.Conn)
 
-	go connectionHandler(conn_chn)
+	go connectionHandler(*room)
 
 	for {
 		new_conn, err := room.listener.Accept()
 		if err != nil {
 			log.Fatalf("failed to connect to %s\n", err)
 		}
-		conn_chn <- new_conn
+		room.conn_chn <- new_conn
 
 		log.Printf("user-joined: %s\n", new_conn.RemoteAddr().String())
 	}
