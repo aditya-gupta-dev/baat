@@ -1,5 +1,7 @@
 package main
 
+import "log"
+
 func main() {
 
 	config := GetConfig()
@@ -8,4 +10,7 @@ func main() {
 
 	room := NewRoom(&config, &logger)
 	room.StartListening()
+	if err := room.Close(); err != nil {
+		log.Fatalf("failed to close room %s", err)
+	}
 }

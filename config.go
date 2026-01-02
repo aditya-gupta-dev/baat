@@ -13,7 +13,7 @@ func DefaultConfig() Config {
 		port:             "8080",
 		connection_limit: 12,
 		max_message_size: 1024,
-		debug_mode:       false,
+		debug_mode:       true,
 		log_bufsize:      12,
 	}
 }

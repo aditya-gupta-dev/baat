@@ -81,7 +81,7 @@ func (l *Logger) sendLog(log Log) {
 	l.inputChn <- log
 }
 
-func (l *Logger) terminate() {
-	l.file.Close()
+func (l *Logger) terminate() error {
 	close(l.inputChn)
+	return l.file.Close()
 }

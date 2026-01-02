@@ -28,17 +28,13 @@ func NewRoom(config *Config, logger *Logger) Room {
 	}
 }
 
-func connectionHandler(room Room) {
+func connectionHandler(room *Room) {
 	for conn := range room.conn_chn {
 
 		room.users = append(room.users, conn)
 
 		room.logger.sendMessageF("user-channel-update: new user recieved { %s }\n", conn.RemoteAddr().String())
 		room.logger.sendMessageF("user-channel-update: total connections { %d }\n", len(room.users))
-
-		if len(room.users) == 1 {
-			continue
-		}
 
 		var counter int = 0
 		for _, user := range room.users {
@@ -60,7 +56,7 @@ func connectionHandler(room Room) {
 
 func (room *Room) StartListening() {
 
-	go connectionHandler(*room)
+	// go connectionHandler(room)
 
 	for {
 		new_conn, err := room.listener.Accept()
@@ -74,5 +70,7 @@ func (room *Room) StartListening() {
 }
 
 func (room *Room) Close() error {
-	return room.listener.Close()
+	err := room.logger.terminate()
+	err = room.listener.Close()
+	return err
 }
